@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mumkeen — The Taste of Home</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=Playfair+Display:wght@700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior: auto; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: #111;
+  overflow-x: hidden;
+  cursor: none;
+}
+
+/* ── CURSOR ── */
+#cur {
+  position: fixed; width: 8px; height: 8px;
+  border-radius: 50%; background: rgba(0,0,0,0.85);
+  pointer-events: none; z-index: 9999;
+  transform: translate(-50%,-50%);
+  transition: transform .2s cubic-bezier(.34,1.56,.64,1);
+  mix-blend-mode: multiply;
+}
+#cur2 {
+  position: fixed; width: 36px; height: 36px;
+  border-radius: 50%; border: 1.5px solid rgba(0,0,0,0.25);
+  pointer-events: none; z-index: 9998;
+  transform: translate(-50%,-50%);
+  mix-blend-mode: multiply;
+}
+body.hov #cur { transform: translate(-50%,-50%) scale(3); }
+body.hov #cur2 { border-color: rgba(0,0,0,0.45); }
+
+/* ── NAV ── */
+nav {
+  position: fixed; top: 0; left: 0; right: 0;
+  z-index: 500;
+  display: flex; align-items: center;
+  justify-content: space-between;
+  padding: 24px 40px;
+  pointer-events: none;
+}
+.nav-logo {
+  display: flex; align-items: center; gap: 10px;
+  pointer-events: all;
+}
+.nav-logo svg { width: 34px; height: 34px; }
+.nav-logo-text-wrap { line-height: 1.15; }
+.nav-logo-name {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px; font-weight: 600; color: #1a1a1a;
+  letter-spacing: -0.02em; display: block;
+}
+.nav-logo-tagline {
+  font-size: 7.5px; color: #1a1a1a; letter-spacing: 0.18em;
+  text-transform: uppercase; display: block; opacity: 0.5;
+}
+.nav-right {
+  display: flex; gap: 36px; pointer-events: all; align-items: center;
+}
+.nav-right a {
+  font-family: 'Space Mono', monospace;
+  font-size: 10.5px; color: #1a1a1a; text-decoration: none;
+  letter-spacing: 0.04em; opacity: 0.65;
+  transition: opacity .2s;
+}
+.nav-right a:hover { opacity: 1; }
+.nav-cta {
+  background: #1a1a1a !important; color: #fff !important;
+  padding: 9px 20px; border-radius: 100px;
+  opacity: 1 !important; font-size: 10px !important;
+  letter-spacing: 0.08em !important;
+  transition: transform .2s ease, box-shadow .2s ease !important;
+}
+.nav-cta:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.22) !important;
+}
+
+/* ── SCROLL SPACE ── */
+#scrollSpace { height: 400vh; position: relative; }
+
+/* ── STICKY STAGE ── */
+#stage {
+  position: sticky; top: 0;
+  width: 100vw; height: 100vh;
+  overflow: hidden;
+}
+
+/* ── BACKGROUND LAYERS ── */
+#bgCurrent { position: absolute; inset: 0; display: flex; flex-direction: column; }
+#bgCT { flex: none; }
+#bgCB { flex: 1; }
+#bgNext { position: absolute; inset: 0; display: flex; flex-direction: column; clip-path: inset(100% 0 0 0); }
+#bgNT { flex: none; }
+#bgNB { flex: 1; }
+
+/* Grain texture */
+#stage::before {
+  content: "";
+  position: absolute; inset: 0; z-index: 3;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
+  pointer-events: none; mix-blend-mode: overlay;
+}
+
+/* Radial highlight */
+#stage::after {
+  content: "";
+  position: absolute; inset: 0; z-index: 3;
+  background: radial-gradient(ellipse 70% 50% at 50% 18%, rgba(255,255,255,0.2), transparent 60%);
+  pointer-events: none;
+}
+
+/* Split line glow */
+#splitGlow {
+  position: absolute; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
+  z-index: 6; pointer-events: none;
+  box-shadow: 0 0 12px rgba(255,255,255,0.15);
+}
+
+/* ── PACKET ── */
+.pack {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(360px, 46vw);
+  pointer-events: none;
+  z-index: 10;
+}
+.pack img {
+  width: 100%; display: block;
+  filter:
+    drop-shadow(0 55px 100px rgba(0,0,0,0.42))
+    drop-shadow(0 14px 30px rgba(0,0,0,0.24))
+    contrast(1.04) saturate(1.08);
+}
+#packCur { opacity: 1; }
+#packNxt { opacity: 0; }
+
+/* ── PRODUCT INFO bottom-left ── */
+#prodInfo {
+  position: absolute; bottom: 48px; left: 48px;
+  pointer-events: none; z-index: 20;
+}
+#prodInfo .pi-eyebrow {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px; letter-spacing: 0.18em;
+  text-transform: uppercase; color: rgba(0,0,0,0.38);
+  margin-bottom: 8px; display: flex; align-items: center; gap: 8px;
+}
+#prodInfo .pi-eyebrow::before {
+  content: ""; display: inline-block;
+  width: 18px; height: 1px; background: rgba(0,0,0,0.3);
+}
+#prodInfo .pi-title {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(2.2rem, 5vw, 3.6rem);
+  font-weight: 900; color: #1a1a1a;
+  line-height: 0.92; letter-spacing: -0.03em;
+}
+#prodInfo .pi-desc {
+  margin-top: 13px;
+  font-size: 11.5px; color: rgba(0,0,0,0.42);
+  font-weight: 400; letter-spacing: 0.01em;
+  max-width: 200px; line-height: 1.55;
+  font-style: italic;
+}
+
+/* ── BADGE bottom-right ── */
+#badge {
+  position: absolute; bottom: 48px; right: 48px;
+  z-index: 20; pointer-events: none;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 10px;
+}
+#badge .badge-count {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px; letter-spacing: 0.12em;
+  color: rgba(0,0,0,0.28);
+}
+#badge .badge-tags { display: flex; gap: 6px; }
+#badge .tag {
+  font-family: 'Space Mono', monospace;
+  font-size: 8px; letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 5px 11px; border-radius: 100px;
+  background: rgba(0,0,0,0.07);
+  border: 1px solid rgba(0,0,0,0.1);
+  color: rgba(0,0,0,0.45);
+}
+
+/* ── FLAVOR STRIP at split ── */
+#flavorStrip {
+  position: absolute; left: 0; right: 0;
+  z-index: 5; pointer-events: none;
+  display: flex; align-items: center;
+  justify-content: center; gap: 0;
+}
+.fs-item {
+  font-family: 'Space Mono', monospace;
+  font-size: 7.5px; letter-spacing: 0.22em;
+  text-transform: uppercase; color: rgba(0,0,0,0.16);
+  padding: 0 14px;
+}
+.fs-dot {
+  width: 2px; height: 2px; border-radius: 50%;
+  background: rgba(0,0,0,0.12); flex-shrink: 0;
+}
+
+/* ── DOTS sidebar ── */
+#dots {
+  position: fixed; right: 22px; top: 50%;
+  transform: translateY(-50%);
+  z-index: 600; display: flex; flex-direction: column; gap: 10px;
+}
+.dot {
+  width: 5px; height: 5px; border-radius: 3px;
+  background: rgba(0,0,0,0.15);
+  transition: background .3s, height .3s, border-radius .3s;
+  cursor: none;
+}
+.dot.on {
+  background: #1a1a1a;
+  height: 20px;
+}
+
+/* ── SCROLL HINT ── */
+#hint {
+  position: fixed; bottom: 28px; left: 50%;
+  transform: translateX(-50%);
+  z-index: 600; display: flex; flex-direction: column;
+  align-items: center; gap: 7px; transition: opacity .6s;
+}
+#hint span {
+  font-family: 'Space Mono', monospace;
+  font-size: 8px; letter-spacing: 0.2em;
+  text-transform: uppercase; color: rgba(0,0,0,0.28);
+}
+.hint-line {
+  width: 1px; height: 38px;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.22), transparent);
+  animation: hpulse 2.4s infinite;
+}
+@keyframes hpulse {
+  0%,100%{ opacity:.2; transform:scaleY(1) }
+  50%{ opacity:.55; transform:scaleY(1.12) }
+}
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 2px; }
+
+@media(max-width:600px){
+  .pack { width: min(270px, 76vw); }
+  nav { padding: 14px 20px; }
+  .nav-right { gap: 18px; }
+  #prodInfo { bottom: 28px; left: 22px; }
+  #badge { bottom: 28px; right: 22px; }
+  #prodInfo .pi-desc { display: none; }
+  .nav-right a:not(.nav-cta) { display: none; }
+}
+</style>
+</head>
+<body>
+
+<div id="cur"></div>
+<div id="cur2"></div>
+
+<nav>
+  <div class="nav-logo">
+    <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M7 31 Q7 13 20 13 Q33 13 33 31" stroke="#1a1a1a" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+      <circle cx="20" cy="9" r="3.8" fill="#1a1a1a"/>
+    </svg>
+    <div class="nav-logo-text-wrap">
+      <span class="nav-logo-name">mumkeen</span>
+      <span class="nav-logo-tagline">The Taste of Home</span>
+    </div>
+  </div>
+  <div class="nav-right">
+    <a href="#">Our Products</a>
+    <a href="#">About Us</a>
+    <a href="#" class="nav-cta">Order Now</a>
+  </div>
+</nav>
+
+<div id="dots"></div>
+
+<div id="hint">
+  <span>Scroll</span>
+  <div class="hint-line"></div>
+</div>
+
+<div id="scrollSpace">
+  <div id="stage">
+
+    <div id="bgCurrent">
+      <div id="bgCT"></div>
+      <div id="bgCB"></div>
+    </div>
+    <div id="bgNext">
+      <div id="bgNT"></div>
+      <div id="bgNB"></div>
+    </div>
+
+    <div id="splitGlow"></div>
+
+    <div id="flavorStrip">
+      <div class="fs-item">Rich Ingredient Mix</div><div class="fs-dot"></div>
+      <div class="fs-item">Bold Flavor</div><div class="fs-dot"></div>
+      <div class="fs-item">Traditional Recipe</div><div class="fs-dot"></div>
+      <div class="fs-item">Premium Quality</div><div class="fs-dot"></div>
+      <div class="fs-item">500g Net Weight</div>
+    </div>
+
+    <div class="pack" id="packCur"><img id="imgCur" src="" alt="Mumkeen product"></div>
+    <div class="pack" id="packNxt"><img id="imgNxt" src="" alt="Mumkeen product"></div>
+
+    <div id="prodInfo">
+      <span class="pi-eyebrow">Mumkeen · Namkeen</span>
+      <div class="pi-title" id="pnTitle"></div>
+      <div class="pi-desc" id="pnDesc"></div>
+    </div>
+
+    <div id="badge">
+      <div class="badge-count" id="prodCount"></div>
+      <div class="badge-tags" id="badgeTags"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const IMG_MIX     = 'mix.png'; // Mix Chevdo
+const IMG_KHATTA  = 'khatta.png'; // Khatta Meetha
+const IMG_MASALA  = 'masala.png'; // Masala Chevdo  (update when available)
+
+const PRODUCTS = [
+  {
+    name: 'Mix\nChevdo',
+    desc: 'A classic Gujarati blend of crispy flattened rice, lentils & spices.',
+    tags: ['Crispy', 'Classic'],
+    count: '01 / 03',
+    gradientTop:    'linear-gradient(175deg, #2d8a6e 0%, #1b6850 100%)',
+    gradientBottom: 'linear-gradient(175deg, #f5c030 0%, #e0a510 100%)',
+    split: 52,
+    img: IMG_MIX
+  },
+  {
+    name: 'Khatta\nMeetha',
+    desc: 'Sweet, sour & tangy — the perfect balance of flavors in every bite.',
+    tags: ['Tangy', 'Sweet'],
+    count: '02 / 03',
+    gradientTop:    'linear-gradient(175deg, #f2b21b 0%, #d49107 100%)',
+    gradientBottom: 'linear-gradient(175deg, #2f7d3b 0%, #1f5c2c 100%)',
+    split: 54,
+    img: IMG_KHATTA
+  },
+  {
+    name: 'Masala\nChevdo',
+    desc: 'Bold masala heat meets the satisfying crunch of hand-made namkeen.',
+    tags: ['Spicy', 'Bold'],
+    count: '03 / 03',
+    gradientTop:    'linear-gradient(175deg, #d63a5c 0%, #b21f3d 100%)',
+    gradientBottom: 'linear-gradient(175deg, #ff9f2e 0%, #e37a12 100%)',
+    split: 56,
+    img: IMG_MASALA
+  },
+  // buffer duplicate for seamless end
+  {
+    name: 'Masala\nChevdo',
+    desc: 'Bold masala heat meets the satisfying crunch of hand-made namkeen.',
+    tags: ['Spicy', 'Bold'],
+    count: '03 / 03',
+    gradientTop:    'linear-gradient(175deg, #d63a5c 0%, #b21f3d 100%)',
+    gradientBottom: 'linear-gradient(175deg, #ff9f2e 0%, #e37a12 100%)',
+    split: 56,
+    img: IMG_MASALA
+  }
+];
+
+const N_REAL  = 3;
+const TRANS_S = 0.28;
+const TRANS_E = 0.88;
+
+const bgCT      = document.getElementById('bgCT');
+const bgCB      = document.getElementById('bgCB');
+const bgNT      = document.getElementById('bgNT');
+const bgNB      = document.getElementById('bgNB');
+const bgN       = document.getElementById('bgNext');
+const packC     = document.getElementById('packCur');
+const packN     = document.getElementById('packNxt');
+const imgC      = document.getElementById('imgCur');
+const imgN      = document.getElementById('imgNxt');
+const pnT       = document.getElementById('pnTitle');
+const pnD       = document.getElementById('pnDesc');
+const pCount    = document.getElementById('prodCount');
+const bTags     = document.getElementById('badgeTags');
+const dotsEl    = document.getElementById('dots');
+const hint      = document.getElementById('hint');
+const cur       = document.getElementById('cur');
+const cur2      = document.getElementById('cur2');
+const splitGlow = document.getElementById('splitGlow');
+const strip     = document.getElementById('flavorStrip');
+
+const VH = window.innerHeight;
+
+/* Build dots */
+for (let i = 0; i < N_REAL; i++) {
+  const d = document.createElement('div');
+  d.className = 'dot' + (i === 0 ? ' on' : '');
+  dotsEl.appendChild(d);
+}
+const dotEls = dotsEl.querySelectorAll('.dot');
+
+/* Preload */
+[...new Set(PRODUCTS.map(p => p.img))].forEach(src => {
+  const im = new Image(); im.src = src;
+});
+
+/* ── State: track what's currently rendered, independently per concern ── */
+let bgRendered   = -1;   // which product's BG is showing as "current"
+let imgRendered  = -1;   // which product's image is in packCur
+let textRendered = -1;   // which product's text/label is shown — NEVER mutated inside transition
+
+function setSplitLine(pct) {
+  splitGlow.style.top = pct + '%';
+  strip.style.top     = pct + '%';
+  strip.style.transform = 'translateY(-50%)';
+}
+
+function buildTags(tags) {
+  bTags.innerHTML = tags.map(t => `<span class="tag">${t}</span>`).join('');
+}
+
+/* setLabel: always sets the label to match `ri`. No guard, no animation block. */
+function setLabel(ri, animate) {
+  const p = PRODUCTS[ri];
+  pCount.textContent = p.count;
+  buildTags(p.tags);
+
+  if (!animate) {
+    pnT.innerHTML  = p.name.replace('\n', '<br>');
+    pnD.textContent = p.desc;
+    pnT.style.cssText = 'opacity:1;transform:none;transition:none';
+    pnD.style.cssText = 'opacity:1;transform:none;transition:none';
+    return;
+  }
+
+  // Fade out, swap content, fade in — always completes regardless of guard
+  pnT.style.cssText = 'opacity:0;transform:translateY(14px);transition:opacity .18s ease,transform .18s ease';
+  pnD.style.cssText = 'opacity:0;transform:translateY(9px);transition:opacity .18s ease,transform .18s ease';
+  setTimeout(() => {
+    pnT.innerHTML   = p.name.replace('\n', '<br>');
+    pnD.textContent = p.desc;
+    pnT.style.cssText = 'opacity:1;transform:none;transition:opacity .4s ease,transform .4s ease';
+    pnD.style.cssText = 'opacity:1;transform:none;transition:opacity .4s ease .06s,transform .4s ease .06s';
+  }, 160);
+}
+
+function applySettled(idx) {
+  const p  = PRODUCTS[idx];
+  const ri = Math.min(idx, N_REAL - 1);
+
+  /* BG */
+  if (bgRendered !== idx) {
+    bgCT.style.background = p.gradientTop;
+    bgCT.style.height     = p.split + '%';
+    bgCB.style.background = p.gradientBottom;
+    bgN.style.clipPath    = 'inset(100% 0 0 0)';
+    bgRendered = idx;
+  }
+
+  /* Image */
+  if (imgRendered !== idx) {
+    imgC.src = p.img;
+    packC.style.opacity = '1';
+    packN.style.opacity = '0';
+    imgRendered = idx;
+  }
+
+  /* Split line */
+  setSplitLine(p.split);
+
+  /* Label — animate only when genuinely switching products */
+  if (textRendered !== ri) {
+    setLabel(ri, textRendered !== -1);
+    textRendered = ri;
+  }
+
+  dotEls.forEach((d, i) => d.classList.toggle('on', i === ri));
+}
+
+function applyTransition(from, to, prog) {
+  const fF = PRODUCTS[from];
+  const fT = PRODUCTS[to];
+
+  /* BG wipe */
+  bgCT.style.background = fF.gradientTop;
+  bgCT.style.height     = fF.split + '%';
+  bgCB.style.background = fF.gradientBottom;
+  bgNT.style.background = fT.gradientTop;
+  bgNT.style.height     = fT.split + '%';
+  bgNB.style.background = fT.gradientBottom;
+  bgN.style.clipPath    = `inset(${((1 - prog) * 100).toFixed(2)}% 0 0 0)`;
+  bgRendered = -1; // bg is in-between, force reset on next settled
+
+  /* Split line interpolation */
+  setSplitLine(fF.split + (fT.split - fF.split) * prog);
+
+  /* Packet crossfade: image changes once at prog=0 for packNxt,
+     opacity crossfades between 0.28 and 0.72 */
+  if (imgN.src !== fT.img && fT.img) imgN.src = fT.img;
+  if (imgC.src !== fF.img && fF.img) { imgC.src = fF.img; imgRendered = from; }
+
+  const fp = Math.max(0, Math.min(1, (prog - 0.28) / 0.44));
+  packC.style.opacity = (1 - fp).toFixed(3);
+  packN.style.opacity = fp.toFixed(3);
+  imgRendered = -1; // in transition, force reset on next settled
+
+  /* ── KEY FIX: text label is driven PURELY by prog, not by curSettled ──
+     Label = "from" product while image is majority "from" (prog < 0.5)
+     Label = "to"   product while image is majority "to"  (prog >= 0.5) */
+  const textShouldBe = prog >= 0.5 ? Math.min(to, N_REAL - 1) : from;
+  if (textRendered !== textShouldBe) {
+    setLabel(textShouldBe, true);
+    textRendered = textShouldBe;
+  }
+
+  dotEls.forEach((d, i) => d.classList.toggle('on', i === textShouldBe));
+}
+
+function onScroll() {
+  const sy = window.scrollY;
+  hint.style.opacity = sy > 90 ? '0' : '1';
+
+  const raw  = sy / VH;
+  const sec  = Math.floor(raw);
+  const frac = raw - sec;
+  const s    = Math.max(0, Math.min(PRODUCTS.length - 1, sec));
+
+  if (s >= PRODUCTS.length - 1) {
+    applySettled(PRODUCTS.length - 1);
+    return;
+  }
+
+  if (frac < TRANS_S) {
+    applySettled(s);
+  } else if (frac > TRANS_E) {
+    applySettled(s + 1);
+  } else {
+    const t = (frac - TRANS_S) / (TRANS_E - TRANS_S);
+    const p = t * t * (3 - 2 * t); // smoothstep
+    applyTransition(s, s + 1, p);
+  }
+}
+
+/* Init — force first product with no animation */
+textRendered = -1;
+applySettled(0);
+window.addEventListener('scroll', onScroll, { passive: true });
+
+dotEls.forEach((d, i) => {
+  d.addEventListener('click', () => window.scrollTo({ top: i * VH, behavior: 'smooth' }));
+});
+
+/* Cursor */
+let mx = 0, my = 0, fx = 0, fy = 0;
+document.addEventListener('mousemove', e => {
+  mx = e.clientX; my = e.clientY;
+  cur.style.left = mx + 'px'; cur.style.top = my + 'px';
+});
+(function tick() {
+  fx += (mx - fx) * 0.1; fy += (my - fy) * 0.1;
+  cur2.style.left = Math.round(fx) + 'px';
+  cur2.style.top  = Math.round(fy) + 'px';
+  requestAnimationFrame(tick);
+})();
+
+document.querySelectorAll('a, .dot').forEach(el => {
+  el.addEventListener('mouseenter', () => document.body.classList.add('hov'));
+  el.addEventListener('mouseleave', () => document.body.classList.remove('hov'));
+});
+</script>
+</body>
+</html>
